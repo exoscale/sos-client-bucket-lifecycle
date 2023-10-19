@@ -1,0 +1,17 @@
+{
+    "Rules": [
+        {
+            "Filter": {
+                "Prefix": "documents/"
+            },
+            "Status": "Enabled",
+            "Expiration": {
+                "Days": 0
+            },
+            "ID": "ExampleRule",
+            "NoncurrentVersionExpiration": {
+                "NonCurrentDays": 1
+            }
+        }
+    ]
+}
