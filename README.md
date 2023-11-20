@@ -8,7 +8,7 @@ In the absence of Bucket Lifecycle support on SOS, this tool allows the applicat
 
 - Only versioning enabled buckets are supported
 - Filters (prefixes, object sizes) are not supported
-- A rule is always considered Enabled whatever is state
+- A rule is always considered Enabled whatever its state
 
 ## Usage
 

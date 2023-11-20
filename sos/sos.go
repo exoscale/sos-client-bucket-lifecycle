@@ -6,15 +6,16 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 var CommonConfigOptFns []func(*config.LoadOptions) error
 
-func NewStorageClient(ctx context.Context, zone, profile string) (*s3.Client, error) {
+func NewStorageClient(ctx context.Context, zone, accessKey, secretKey string) (*s3.Client, error) {
 	cfg, err := config.LoadDefaultConfig(
 		ctx,
-		config.WithSharedConfigProfile(profile),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
 	)
 	if err != nil {
 		return nil, err

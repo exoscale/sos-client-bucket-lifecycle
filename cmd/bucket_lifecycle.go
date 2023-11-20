@@ -64,7 +64,7 @@ func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
 	}
 
 	if versioning.Status != types.BucketVersioningStatusEnabled {
-		panic("Only versioned buckets are supported")
+		log.Fatal("Only versioned buckets are supported")
 	}
 
 	var previousLatest Version
@@ -98,7 +98,7 @@ func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
 				if age >= *rule.AbortIncompleteMultipartUpload.DaysAfterInitiation {
 					_, err := client.AbortMultipartUpload(context.TODO(), &s3.AbortMultipartUploadInput{Bucket: bucket, Key: upload.Key, UploadId: upload.UploadId})
 					if err != nil {
-						panic(err)
+						log.Printf("Cannot abort upload %s", *upload.UploadId)
 					}
 				}
 			}

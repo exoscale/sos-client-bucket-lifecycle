@@ -19,3 +19,8 @@
 
 # Go workspace file
 go.work
+
+release/
+dist/
+sos-client-bucket-lifecycle
+*.swp

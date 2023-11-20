@@ -3,16 +3,18 @@ package cmd
 import (
 	"context"
 	"flag"
-	"github.com/exoscale/sos-client-bucket-lifecycle/sos"
 	"log"
 	"os"
 	"os/signal"
+
+	"github.com/exoscale/sos-client-bucket-lifecycle/sos"
 )
 
 var (
 	bucket     string
 	zone       string
-	profile    string
+	accessKey  string
+	secretKey  string
 	configPath string
 )
 
@@ -34,9 +36,9 @@ func CliExecute() error {
 
 	flag.Parse()
 
-	client, err := sos.NewStorageClient(context.TODO(), zone, profile)
+	client, err := sos.NewStorageClient(context.TODO(), zone, accessKey, secretKey)
 	if err != nil {
-		log.Fatalf("Cannot create SOS client on zone %s with profile %s\n %v", zone, profile, err)
+		log.Fatalf("Cannot create SOS client on zone %s with acccess key %s\n %v", zone, accessKey, err)
 	}
 	cfg, err := LoadConfig(configPath)
 	if err != nil {
@@ -54,7 +56,8 @@ func CliExecute() error {
 
 func init() {
 	flag.StringVar(&bucket, "bucket", "", "Bucket name")
-	flag.StringVar(&profile, "profile", "", "Profile from your credential file")
+	flag.StringVar(&accessKey, "access-key", "", "Access Key")
+	flag.StringVar(&secretKey, "secret-key", "", "Secret key")
 	flag.StringVar(&zone, "zone", "ch-dk-2", "Bucket zone")
 	flag.StringVar(&configPath, "config", "", "Bucket-lifecycle configuration file path (.json)")
 }
