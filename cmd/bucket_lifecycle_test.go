@@ -2,10 +2,11 @@ package cmd_test
 
 import (
 	"context"
-	"github.com/exoscale/sos-client-bucket-lifecycle/cmd"
-	bconfig "github.com/exoscale/sos-client-bucket-lifecycle/config"
 	"strings"
 	"testing"
+
+	"github.com/exoscale/sos-client-bucket-lifecycle/cmd"
+	bconfig "github.com/exoscale/sos-client-bucket-lifecycle/config"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,7 +18,6 @@ import (
 
 var client *s3.Client
 var bucket = "abucket"
-var region = "us-east-1"
 var ctx = context.TODO()
 
 func DeleteBucket() {
@@ -50,26 +50,37 @@ func DeleteBucket() {
 
 }
 
-func WithClient(f func(client *s3.Client)) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+func CreateConfig() (aws.Config, error) {
+	return config.LoadDefaultConfig(context.TODO(),
 		config.WithCredentialsProvider(credentials.StaticCredentialsProvider{
 			Value: aws.Credentials{
 				AccessKeyID:     "your_access_key",
 				SecretAccessKey: "your_secret_key",
 			},
 		}))
+}
 
-	if err != nil {
-		panic(err)
-	}
-	client = s3.NewFromConfig(cfg, func(o *s3.Options) {
+func CreateClient(cfg aws.Config) *s3.Client {
+	return s3.NewFromConfig(cfg, func(o *s3.Options) {
 		sosEndpoint := "http://localhost:9000/"
 
 		o.Region = "us-east-1"
 		o.BaseEndpoint = aws.String(sosEndpoint)
 		o.UsePathStyle = true
 	})
+}
+
+func WithClient(f func(client *s3.Client)) {
+	cfg, err := CreateConfig()
+
+	if err != nil {
+		panic(err)
+	}
+	client = CreateClient(cfg)
 	_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: &bucket, ObjectLockEnabledForBucket: true})
+	if err != nil {
+		panic(err)
+	}
 	defer DeleteBucket()
 	f(client)
 }
@@ -83,11 +94,11 @@ func LoadConfig(configPath string) bconfig.BucketLifecycleConfiguration {
 }
 
 func PutObject(client *s3.Client, key string) *s3.PutObjectOutput {
-	ouput, err := client.PutObject(ctx, &s3.PutObjectInput{Bucket: &bucket, Key: &key, Body: strings.NewReader("toto")})
+	output, err := client.PutObject(ctx, &s3.PutObjectInput{Bucket: &bucket, Key: &key, Body: strings.NewReader("toto")})
 	if err != nil {
 		panic(err)
 	}
-	return ouput
+	return output
 }
 
 func DeleteObject(client *s3.Client, key string) *s3.DeleteObjectOutput {
@@ -133,7 +144,7 @@ func TestExpiration0DaysOneKeyOneVersion(t *testing.T) {
 	WithClient(func(client *s3.Client) {
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_0_days.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 2, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -146,7 +157,7 @@ func TestExpiration0DaysOneKeyMultipleVersions(t *testing.T) {
 		PutObject(client, "key1")
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_0_days.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 3, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -158,7 +169,7 @@ func TestExpiration1DaysOneKeyOneVersion(t *testing.T) {
 	WithClient(func(client *s3.Client) {
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_1_days.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 1, len(versions))
 	})
@@ -168,7 +179,7 @@ func TestNewerNoncurrentVersionsOneKeyOneVersion(t *testing.T) {
 	WithClient(func(client *s3.Client) {
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_newer_noncurrent_versions_0.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 1, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -182,7 +193,7 @@ func TestNewerNoncurrentVersionsOneKeyMultipleVersions(t *testing.T) {
 		PutObject(client, "key1")
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_newer_noncurrent_versions_0.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 1, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -199,7 +210,7 @@ func TestNewerNoncurrentVersionsMultipleKeysMultipleVersions(t *testing.T) {
 		PutObject(client, "key2")
 		PutObject(client, "key2")
 		cfg := LoadConfig("../testdata/rule_with_expiration_newer_noncurrent_versions_0.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 2, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -215,7 +226,7 @@ func Test1NewerNoncurrentVersionsOneKeyMultipleVersions(t *testing.T) {
 		PutObject(client, "key1")
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_newer_noncurrent_versions_1.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 2, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -231,7 +242,7 @@ func Test2NewerNoncurrentVersionsOneKeyMultipleVersions(t *testing.T) {
 		PutObject(client, "key1")
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_newer_noncurrent_versions_2.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 3, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -243,7 +254,7 @@ func TestNonCurrentDays0DaysOneKeyOneVersion(t *testing.T) {
 	WithClient(func(client *s3.Client) {
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_non_current_days_0_days.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 1, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -257,7 +268,7 @@ func TestNonCurrentDays0DaysOneKeyMultipleVersions(t *testing.T) {
 		PutObject(client, "key1")
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_non_current_days_0_days.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 1, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -274,7 +285,7 @@ func TestNonCurrentDays0DaysMultipleKeysMultipleVersions(t *testing.T) {
 		PutObject(client, "key2")
 		PutObject(client, "key2")
 		cfg := LoadConfig("../testdata/rule_with_expiration_non_current_days_0_days.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 2, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -286,7 +297,7 @@ func TestNonCurrentDays1DaysOneKeyOneVersion(t *testing.T) {
 	WithClient(func(client *s3.Client) {
 		PutObject(client, "key1")
 		cfg := LoadConfig("../testdata/rule_with_expiration_non_current_days_1_days.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
 		require.Equal(t, 2, len(versions))
 		require.True(t, versions[0].IsLatest)
@@ -302,7 +313,7 @@ func TestExpiredObjectDeleteMarker0Days(t *testing.T) {
 		versions := ListObjectVersions(client)
 		require.Equal(t, 1, len(versions))
 		cfg := LoadConfig("../testdata/rule_with_expiration_expired_object_delete_marker_true.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions = ListObjectVersions(client)
 		require.Equal(t, 0, len(versions))
 	})
@@ -316,7 +327,7 @@ func TestExpiredObjectDeleteMarker1Days(t *testing.T) {
 		versions := ListObjectVersions(client)
 		require.Equal(t, 1, len(versions))
 		cfg := LoadConfig("../testdata/rule_with_expiration_expired_object_delete_marker_false.json")
-		cmd.Execute(client, bucket, cfg)
+		_ = cmd.Execute(client, bucket, cfg)
 		versions = ListObjectVersions(client)
 		require.Equal(t, 1, len(versions))
 	})

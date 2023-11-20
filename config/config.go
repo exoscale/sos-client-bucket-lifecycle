@@ -11,7 +11,7 @@ type BucketLifecycleConfiguration struct {
 type Rule struct {
 	ID                             string                          `json:"ID" validate:"required,alphanum,max=255"`
 	Status                         string                          `json:"Status" validate:"required,oneof=Enabled Disabled"`
-	Filter                         *Filter                         `json:"Filter,omitempty",omitempty`
+	Filter                         *Filter                         `json:"Filter,omitempty"`
 	Expiration                     *Expiration                     `json:"Expiration,omitempty"`
 	NoncurrentVersionExpiration    *NoncurrentVersionExpiration    `json:"NoncurrentVersionExpiration,omitempty"`
 	AbortIncompleteMultipartUpload *AbortIncompleteMultipartUpload `json:"AbortIncompleteMultipartUpload,omitempty"`

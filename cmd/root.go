@@ -18,22 +18,7 @@ var (
 	configPath string
 )
 
-func CliExecute() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	defer func() {
-		signal.Stop(c)
-		cancel()
-	}()
-	go func() {
-		select {
-		case <-c:
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-
+func CliExecute() {
 	flag.Parse()
 
 	client, err := sos.NewStorageClient(context.TODO(), zone, accessKey, secretKey)
@@ -49,9 +34,23 @@ func CliExecute() error {
 	if err := Execute(client, bucket, *cfg); err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-	log.Printf("Done")
 
-	return nil
+	ctx, cancel := context.WithCancel(context.Background())
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	defer func() {
+		signal.Stop(c)
+		cancel()
+	}()
+	go func() {
+		select {
+		case <-c:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	log.Printf("Done")
 }
 
 func init() {

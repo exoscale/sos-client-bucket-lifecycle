@@ -11,8 +11,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/exoscale/sos-client-bucket-lifecycle/config"
 	"github.com/go-playground/validator/v10"
+
+	"github.com/exoscale/sos-client-bucket-lifecycle/config"
 )
 
 type Version struct {
@@ -57,34 +58,7 @@ func AgeInDays(now, lastModified time.Time) int {
 	return int(now.Sub(lastModified).Hours() / 24)
 }
 
-func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
-	versioning, err := client.GetBucketVersioning(context.Background(), &s3.GetBucketVersioningInput{Bucket: bucket})
-	if err != nil {
-		return err
-	}
-
-	if versioning.Status != types.BucketVersioningStatusEnabled {
-		log.Fatal("Only versioned buckets are supported")
-	}
-
-	var previousLatest Version
-	var currentKey *string
-	var nbVersions int
-
-	expireObjectDeleteMarker := func(version *Version) {
-		if rule.Expiration != nil &&
-			rule.Expiration.ExpiredObjectDeleteMarker &&
-			previousLatest.DeleteMarker &&
-			previousLatest.IsLatest && (version == nil || version.Key != *currentKey) && nbVersions == 0 {
-			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &previousLatest.Key, VersionId: &previousLatest.VersionId})
-			log.Printf("key: %s, version %s removed\n", previousLatest.Key, previousLatest.VersionId)
-			if err != nil {
-				log.Printf("key: %s, version %s cannot be removed\n", previousLatest.Key, previousLatest.VersionId)
-			}
-
-		}
-	}
-
+func applyAbortIncompleteMultipartUpload(client *s3.Client, bucket *string, rule config.Rule) error {
 	if rule.AbortIncompleteMultipartUpload != nil {
 		paginator := s3.NewListMultipartUploadsPaginator(client, &s3.ListMultipartUploadsInput{Bucket: bucket})
 		for paginator.HasMorePages() {
@@ -102,8 +76,75 @@ func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
 					}
 				}
 			}
+		}
+	}
+	return nil
+}
+
+func applyExpiration(rule config.Rule, version Version, age int, client *s3.Client, bucket *string, nbVersions int) bool {
+	if rule.Expiration != nil && version.IsLatest && !version.DeleteMarker {
+		if age >= *rule.Expiration.Days {
+			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key})
+			if err != nil {
+				log.Printf("key: %s, version %s cannot be removed\n", version.Key, version.VersionId)
+			}
+			log.Printf("key: %s, version %s removed\n", version.Key, version.VersionId)
+			return true
+		} else {
+			log.Printf("key: %s, version %s not removed\n", version.Key, version.VersionId)
+		}
+	}
+	return false
+}
+
+func applyNoncurrentVersionExpiration(rule config.Rule, age int, client *s3.Client, bucket *string, version Version, nbVersions int) {
+	if rule.NoncurrentVersionExpiration != nil {
+		if rule.NoncurrentVersionExpiration.NoncurrentDays != nil && age >= *rule.NoncurrentVersionExpiration.NoncurrentDays {
+			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key, VersionId: &version.VersionId})
+			if err != nil {
+				log.Printf("key: %s, version %s cannot be removed\n", version.Key, version.VersionId)
+			}
+			log.Printf("key: %s, version %s removed\n", version.Key, version.VersionId)
+		} else if rule.NoncurrentVersionExpiration.NewerNoncurrentVersions != nil && nbVersions > *rule.NoncurrentVersionExpiration.NewerNoncurrentVersions {
+			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key, VersionId: &version.VersionId})
+			if err != nil {
+				log.Printf("key: %s, version %s cannot be removed\n", version.Key, version.VersionId)
+			}
+			log.Printf("key: %s, version %s removed\n", version.Key, version.VersionId)
+		}
+	}
+}
+
+func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
+	versioning, err := client.GetBucketVersioning(context.Background(), &s3.GetBucketVersioningInput{Bucket: bucket})
+	if err != nil {
+		return err
+	}
+
+	if versioning.Status != types.BucketVersioningStatusEnabled {
+		log.Fatal("Only versioned buckets are supported")
+	}
+
+	var previousLatest Version
+	var currentKey string
+	var nbVersions int
+
+	expireObjectDeleteMarker := func(version *Version) {
+		if rule.Expiration != nil &&
+			rule.Expiration.ExpiredObjectDeleteMarker &&
+			previousLatest.DeleteMarker &&
+			previousLatest.IsLatest && (version == nil || version.Key != currentKey) && nbVersions == 0 {
+			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &previousLatest.Key, VersionId: &previousLatest.VersionId})
+			log.Printf("key: %s, version %s removed\n", previousLatest.Key, previousLatest.VersionId)
+			if err != nil {
+				log.Printf("key: %s, version %s cannot be removed\n", previousLatest.Key, previousLatest.VersionId)
+			}
 
 		}
+	}
+
+	if applyAbortIncompleteMultipartUpload(client, bucket, rule) != nil {
+		return err
 	}
 
 	paginator := s3.NewListObjectVersionsPaginator(client, &s3.ListObjectVersionsInput{Bucket: bucket})
@@ -118,46 +159,24 @@ func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
 		for _, version := range versions {
 			expireObjectDeleteMarker(&version)
 
-			if currentKey != nil && version.Key != *currentKey {
+			if currentKey != "" && version.Key != currentKey {
 				nbVersions = 0
 			}
 			if version.IsLatest {
 				previousLatest = version
 			}
-			if currentKey != nil && version.Key == *currentKey && !version.IsLatest {
+			if currentKey != "" && version.Key == currentKey && !version.IsLatest {
 				nbVersions++
 			}
-			currentKey = &version.Key
+			currentKey = version.Key
 
 			age := AgeInDays(time.Now(), version.LastModified)
 			// Expiration is only applied on the latest version of the key.
-			if rule.Expiration != nil && version.IsLatest && !version.DeleteMarker {
-				if age >= *rule.Expiration.Days {
-					_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key})
-					nbVersions++
-					if err != nil {
-						return err
-					}
-					log.Printf("key: %s, version %s removed\n", version.Key, version.VersionId)
-				} else {
-					log.Printf("key: %s, version %s not removed\n", version.Key, version.VersionId)
-				}
+			// If applied, creates a additional non-current version
+			if applyExpiration(rule, version, age, client, bucket, nbVersions) {
+				nbVersions++
 			}
-			if rule.NoncurrentVersionExpiration != nil {
-				if rule.NoncurrentVersionExpiration.NoncurrentDays != nil && age >= *rule.NoncurrentVersionExpiration.NoncurrentDays {
-					_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key, VersionId: &version.VersionId})
-					if err != nil {
-						return err
-					}
-					log.Printf("key: %s, version %s removed\n", version.Key, version.VersionId)
-				} else if rule.NoncurrentVersionExpiration.NewerNoncurrentVersions != nil && nbVersions > *rule.NoncurrentVersionExpiration.NewerNoncurrentVersions {
-					_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key, VersionId: &version.VersionId})
-					if err != nil {
-						return err
-					}
-					log.Printf("key: %s, version %s removed\n", version.Key, version.VersionId)
-				}
-			}
+			applyNoncurrentVersionExpiration(rule, age, client, bucket, version, nbVersions)
 		}
 	}
 	expireObjectDeleteMarker(nil)
