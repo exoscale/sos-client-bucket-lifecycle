@@ -48,9 +48,12 @@ func ToSortedVersions(output *s3.ListObjectVersionsOutput) []Version {
 	sort.SliceStable(versions, func(i, j int) bool {
 		if versions[i].Key < versions[j].Key {
 			return true
+		} else if versions[i].Key > versions[j].Key {
+			return false
 		}
 		return versions[i].LastModified.After(versions[j].LastModified)
 	})
+
 	return versions
 }
 
@@ -86,12 +89,12 @@ func applyExpiration(rule config.Rule, version Version, age int, client *s3.Clie
 		if age >= *rule.Expiration.Days {
 			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key})
 			if err != nil {
-				log.Printf("key: %s, version %s cannot be removed\n", version.Key, version.VersionId)
+				log.Printf("[expiration] key: %s, version %s cannot be removed\n", version.Key, version.VersionId)
 			}
-			log.Printf("key: %s, version %s removed\n", version.Key, version.VersionId)
+			log.Printf("[expiration] key: %s, version %s removed\n", version.Key, version.VersionId)
 			return true
 		} else {
-			log.Printf("key: %s, version %s not removed\n", version.Key, version.VersionId)
+			log.Printf("[expiration] key: %s, version %s not removed\n", version.Key, version.VersionId)
 		}
 	}
 	return false
@@ -102,15 +105,15 @@ func applyNoncurrentVersionExpiration(rule config.Rule, age int, client *s3.Clie
 		if rule.NoncurrentVersionExpiration.NoncurrentDays != nil && age >= *rule.NoncurrentVersionExpiration.NoncurrentDays {
 			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key, VersionId: &version.VersionId})
 			if err != nil {
-				log.Printf("key: %s, version %s cannot be removed\n", version.Key, version.VersionId)
+				log.Printf("[non current days] key: %s, version %s cannot be removed\n", version.Key, version.VersionId)
 			}
-			log.Printf("key: %s, version %s removed\n", version.Key, version.VersionId)
+			log.Printf("[non current days] key: %s, version %s removed\n", version.Key, version.VersionId)
 		} else if rule.NoncurrentVersionExpiration.NewerNoncurrentVersions != nil && nbVersions > *rule.NoncurrentVersionExpiration.NewerNoncurrentVersions {
 			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key, VersionId: &version.VersionId})
 			if err != nil {
-				log.Printf("key: %s, version %s cannot be removed\n", version.Key, version.VersionId)
+				log.Printf("[newer non current versions] key: %s, version %s cannot be removed\n", version.Key, version.VersionId)
 			}
-			log.Printf("key: %s, version %s removed\n", version.Key, version.VersionId)
+			log.Printf("[newer non current versions] key: %s, version %s removed\n", version.Key, version.VersionId)
 		}
 	}
 }
@@ -133,11 +136,11 @@ func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
 		if rule.Expiration != nil &&
 			rule.Expiration.ExpiredObjectDeleteMarker &&
 			previousLatest.DeleteMarker &&
-			previousLatest.IsLatest && (version == nil || version.Key != currentKey) && nbVersions == 0 {
+			previousLatest.IsLatest && (version == nil || version.Key != previousLatest.Key) && nbVersions == 0 {
 			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &previousLatest.Key, VersionId: &previousLatest.VersionId})
-			log.Printf("key: %s, version %s removed\n", previousLatest.Key, previousLatest.VersionId)
+			log.Printf("[expire delete marker] key: %s, version %s removed\n", previousLatest.Key, previousLatest.VersionId)
 			if err != nil {
-				log.Printf("key: %s, version %s cannot be removed\n", previousLatest.Key, previousLatest.VersionId)
+				log.Printf("[expire delete marker] key: %s, version %s cannot be removed\n", previousLatest.Key, previousLatest.VersionId)
 			}
 
 		}
