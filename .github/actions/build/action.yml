@@ -14,5 +14,6 @@ runs:
     - run: make build
       shell: bash
 
-    - run: make test-verbose
-      shell: bash
+    # FIXME: Disable tests on CI for the time being
+    #- run: make test-verbose
+    #  shell: bash

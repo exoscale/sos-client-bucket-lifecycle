@@ -12,7 +12,7 @@ In the absence of Bucket Lifecycle support on SOS, this tool allows the applicat
 
 ## Usage
 
-Be sure to have the Go binary [installed](https://go.dev/doc/install)
+Be sure to have the Docker [installed](https://docs.docker.com/get-docker)
 
 Download and install the sos-client-bucket-lifecycle binary:
 
