@@ -12,21 +12,7 @@ In the absence of Bucket Lifecycle support on SOS, this tool allows the applicat
 
 ## Usage
 
-Be sure to have the Docker [installed](https://docs.docker.com/get-docker)
-
-Download and install the sos-client-bucket-lifecycle binary:
-
-``` sh
-go install github.com/exoscale/sos-client-bucket-lifecycle@latest
-```
-
-Configure your `~/.aws/credentials` with your access key:
-
-```
-[sos]
-aws_access_key_id=your_access_key
-aws_secret_access_key=your_secret_key
-```
+Be sure to have the Docker [installed](https://docs.docker.com/get-docker).
 
 Define your bucket lifecycle configuration somewhere on your filesystem.
 The following example defines a configuration where :
@@ -37,7 +23,7 @@ The following example defines a configuration where :
 - Abort the multipart uploads that are older than 7 days
 
 ```
-cat ~/bucket-lifecycle-configuration.json
+cat /bucket-lifecycle-configuration.json
 ```
 
 ```json 
@@ -61,13 +47,16 @@ cat ~/bucket-lifecycle-configuration.json
 }
 ```
 
-Execute the binary :
+Execute the OCI container with the configuration file as a volume :
 
 ``` sh
-~/go/bin/sos-client-bucket-lifecycle \
-  --config ~/bucket-lifecycle-configuration.json \
+docker run \
+  -v /bucket-lifecycle-configuration.json:/bucket-lifecycle-configuration.json \ 
+  exoscale/sos-client-bucket-lifecycle  \
+  --config /bucket-lifecycle-configuration.json \
   --bucket mybucket \
   --zone ch-gva-2 \
-  --profile sos
+  --access-key REDACTED \
+  --secret-key REDACTED
 ```
 
