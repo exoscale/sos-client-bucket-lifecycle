@@ -22,5 +22,6 @@ go.work
 
 release/
 dist/
+vendor/
 sos-client-bucket-lifecycle
 *.swp
