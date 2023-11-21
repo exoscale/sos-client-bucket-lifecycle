@@ -51,7 +51,7 @@ Execute the OCI container with the configuration file as a volume :
 
 ```sh
 docker run \
-  -v /bucket-lifecycle-configuration.json:/bucket-lifecycle-configuration.json \ 
+  -v /bucket-lifecycle-configuration.json:/bucket-lifecycle-configuration.json \
   exoscale/sos-client-bucket-lifecycle  \
   --config /bucket-lifecycle-configuration.json \
   --bucket mybucket \
