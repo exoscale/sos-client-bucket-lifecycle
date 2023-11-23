@@ -19,3 +19,13 @@ jobs:
           fetch-depth: 0
 
       - uses: ./.github/actions/build
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          check-latest: true
+      - run: docker compose up -d --wait
+      - run: go test ./... -race
+
