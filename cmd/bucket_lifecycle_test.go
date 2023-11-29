@@ -427,3 +427,22 @@ func TestSortVersionsByDateAndNames(t *testing.T) {
 		require.Equal(t, version4, versions[5])
 	}
 }
+
+func TestAgeInDaysWithToday(t *testing.T) {
+	require.Equal(t, 0, cmd.AgeInDays(time.Now(), time.Now()))
+}
+
+func TestAgeInDaysWithYesterdaySameHour(t *testing.T) {
+	now := time.Now()
+	require.Equal(t, 0, cmd.AgeInDays(now, now.Add(time.Duration(-1*time.Hour*24))))
+}
+
+func TestAgeInDaysWithYesterdayPlusOneHour(t *testing.T) {
+	now := time.Now()
+	require.Equal(t, 1, cmd.AgeInDays(now, now.Add(time.Duration(-1*time.Hour*25))))
+}
+
+func TestAgeInDaysWithYesterdayTwoDaysAgo(t *testing.T) {
+	now := time.Now()
+	require.Equal(t, 20, cmd.AgeInDays(now, now.Add(time.Duration(-1*time.Hour*20*24))))
+}

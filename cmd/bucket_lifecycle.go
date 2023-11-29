@@ -79,7 +79,7 @@ func applyAbortIncompleteMultipartUpload(client *s3.Client, bucket *string, rule
 				if age >= *rule.AbortIncompleteMultipartUpload.DaysAfterInitiation {
 					_, err := client.AbortMultipartUpload(context.TODO(), &s3.AbortMultipartUploadInput{Bucket: bucket, Key: upload.Key, UploadId: upload.UploadId})
 					if err != nil {
-						log.Printf("Cannot abort upload %s", *upload.UploadId)
+						log.Printf("[abort multipart upload] cannot abort upload %s", *upload.UploadId)
 					}
 				}
 			}
