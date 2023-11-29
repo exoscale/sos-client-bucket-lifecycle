@@ -2,8 +2,10 @@ package cmd_test
 
 import (
 	"context"
+	"math/rand"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/exoscale/sos-client-bucket-lifecycle/cmd"
 	bconfig "github.com/exoscale/sos-client-bucket-lifecycle/config"
@@ -22,8 +24,7 @@ var ctx = context.TODO()
 
 func DeleteBucket() {
 	output, _ := client.ListObjectVersions(ctx, &s3.ListObjectVersionsInput{Bucket: &bucket})
-	cmd.ToSortedVersions(output)
-	for _, version := range cmd.ToSortedVersions(output) {
+	for _, version := range cmd.SortVersions(cmd.ToVersions(output)) {
 		_, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: &bucket, Key: &version.Key, VersionId: &version.VersionId})
 		if err != nil {
 			panic(err)
@@ -137,7 +138,7 @@ func ListObjectVersions(client *s3.Client) []cmd.Version {
 	if err != nil {
 		panic(err)
 	}
-	return cmd.ToSortedVersions(output)
+	return cmd.SortVersions(cmd.ToVersions(output))
 }
 
 func TestExpiration0DaysOneKeyOneVersion(t *testing.T) {
@@ -359,3 +360,89 @@ func TestAbortIncompleteMultipartUpload1Days(t *testing.T) {
 	})
 }
 */
+
+func TestSortVersionsByDate(t *testing.T) {
+	version1 := cmd.Version{
+		IsLatest:     true,
+		LastModified: time.Date(2023, time.November, 29, 12, 0, 0, 0, time.UTC),
+		Key:          "key1"}
+	version2 := cmd.Version{
+		IsLatest:     false,
+		LastModified: time.Date(2023, time.November, 29, 13, 0, 0, 0, time.UTC),
+		Key:          "key1"}
+	version3 := cmd.Version{
+		IsLatest:     false,
+		LastModified: time.Date(2023, time.November, 29, 14, 0, 0, 0, time.UTC),
+		Key:          "key1"}
+	versions := []cmd.Version{version1, version2, version3}
+	for i := 0; i < 10; i++ {
+		rand.Shuffle(len(versions), func(i, j int) {
+			versions[i], versions[j] = versions[j], versions[i]
+		})
+		cmd.SortVersions(versions)
+		require.Equal(t, 3, len(versions))
+		require.Equal(t, version3, versions[0])
+		require.Equal(t, version2, versions[1])
+		require.Equal(t, version1, versions[2])
+	}
+}
+
+func TestSortVersionsByDateAndNames(t *testing.T) {
+	version1 := cmd.Version{
+		IsLatest:     true,
+		LastModified: time.Date(2023, time.November, 29, 12, 0, 0, 0, time.UTC),
+		Key:          "key1"}
+	version2 := cmd.Version{
+		IsLatest:     false,
+		LastModified: time.Date(2023, time.November, 29, 13, 0, 0, 0, time.UTC),
+		Key:          "key1"}
+	version3 := cmd.Version{
+		IsLatest:     false,
+		LastModified: time.Date(2023, time.November, 29, 14, 0, 0, 0, time.UTC),
+		Key:          "key1"}
+	version4 := cmd.Version{
+		IsLatest:     true,
+		LastModified: time.Date(2023, time.November, 29, 12, 0, 0, 0, time.UTC),
+		Key:          "key2"}
+	version5 := cmd.Version{
+		IsLatest:     false,
+		LastModified: time.Date(2023, time.November, 29, 13, 0, 0, 0, time.UTC),
+		Key:          "key2"}
+	version6 := cmd.Version{
+		IsLatest:     false,
+		LastModified: time.Date(2023, time.November, 29, 14, 0, 0, 0, time.UTC),
+		Key:          "key2"}
+	versions := []cmd.Version{version1, version2, version3, version4, version5, version6}
+	for i := 0; i < 100; i++ {
+		rand.Shuffle(len(versions), func(i, j int) {
+			versions[i], versions[j] = versions[j], versions[i]
+		})
+		cmd.SortVersions(versions)
+		require.Equal(t, 6, len(versions))
+		require.Equal(t, version3, versions[0])
+		require.Equal(t, version2, versions[1])
+		require.Equal(t, version1, versions[2])
+		require.Equal(t, version6, versions[3])
+		require.Equal(t, version5, versions[4])
+		require.Equal(t, version4, versions[5])
+	}
+}
+
+func TestAgeInDaysWithToday(t *testing.T) {
+	require.Equal(t, 0, cmd.AgeInDays(time.Now(), time.Now()))
+}
+
+func TestAgeInDaysWithYesterdaySameHour(t *testing.T) {
+	now := time.Now()
+	require.Equal(t, 0, cmd.AgeInDays(now, now.Add(time.Duration(-1*time.Hour*24))))
+}
+
+func TestAgeInDaysWithYesterdayPlusOneHour(t *testing.T) {
+	now := time.Now()
+	require.Equal(t, 1, cmd.AgeInDays(now, now.Add(time.Duration(-1*time.Hour*25))))
+}
+
+func TestAgeInDaysWithYesterdayTwoDaysAgo(t *testing.T) {
+	now := time.Now()
+	require.Equal(t, 20, cmd.AgeInDays(now, now.Add(time.Duration(-1*time.Hour*20*24))))
+}

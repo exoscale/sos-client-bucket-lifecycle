@@ -13,10 +13,12 @@ import (
 var CommonConfigOptFns []func(*config.LoadOptions) error
 
 func NewStorageClient(ctx context.Context, zone, accessKey, secretKey string) (*s3.Client, error) {
-	cfg, err := config.LoadDefaultConfig(
-		ctx,
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
-	)
+	opts := []func(*config.LoadOptions) error{}
+	if accessKey != "" {
+		opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")))
+	}
+	cfg, err := config.LoadDefaultConfig(ctx, opts...)
+
 	if err != nil {
 		return nil, err
 	}
