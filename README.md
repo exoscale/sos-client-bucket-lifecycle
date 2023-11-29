@@ -59,7 +59,7 @@ docker run \
   --secret-key REDACTED
 ```
 
-Alternatively, common AWS environement variables are also supported
+Alternatively, AWS environement variables are also supported
 
 ```sh
 docker run \
