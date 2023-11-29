@@ -24,7 +24,7 @@ type Version struct {
 	DeleteMarker bool
 }
 
-func ToSortedVersions(output *s3.ListObjectVersionsOutput) []Version {
+func ToVersions(output *s3.ListObjectVersionsOutput) []Version {
 	versions := make([]Version, 0)
 	for _, version := range output.Versions {
 		versions = append(versions, Version{
@@ -45,6 +45,10 @@ func ToSortedVersions(output *s3.ListObjectVersionsOutput) []Version {
 			DeleteMarker: true,
 		})
 	}
+	return versions
+}
+
+func SortVersions(versions []Version) []Version {
 	sort.SliceStable(versions, func(i, j int) bool {
 		if versions[i].Key < versions[j].Key {
 			return true
@@ -158,7 +162,7 @@ func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
 			return err
 		}
 
-		versions := ToSortedVersions(output)
+		versions := SortVersions(ToVersions(output))
 
 		for _, version := range versions {
 			expireObjectDeleteMarker(&version)

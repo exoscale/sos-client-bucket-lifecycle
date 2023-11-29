@@ -8,6 +8,7 @@ import (
 	"os/signal"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+
 	"github.com/exoscale/sos-client-bucket-lifecycle/sos"
 )
 
