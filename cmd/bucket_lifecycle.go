@@ -126,7 +126,7 @@ func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
 	}
 
 	if versioning.Status != types.BucketVersioningStatusEnabled {
-		log.Fatal("Only versioned buckets are supported")
+		log.Fatalf("%s is not a versioned bucket", *bucket)
 	}
 
 	var previousLatest Version
