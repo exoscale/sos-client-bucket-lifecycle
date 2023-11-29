@@ -432,9 +432,14 @@ func TestAgeInDaysWithToday(t *testing.T) {
 	require.Equal(t, 0, cmd.AgeInDays(time.Now(), time.Now()))
 }
 
+func TestAgeInDaysWithYesterdayOneHourBefore(t *testing.T) {
+	now := time.Now()
+	require.Equal(t, 0, cmd.AgeInDays(now, now.Add(time.Duration(-1*time.Hour*23))))
+}
+
 func TestAgeInDaysWithYesterdaySameHour(t *testing.T) {
 	now := time.Now()
-	require.Equal(t, 0, cmd.AgeInDays(now, now.Add(time.Duration(-1*time.Hour*24))))
+	require.Equal(t, 1, cmd.AgeInDays(now, now.Add(time.Duration(-1*time.Hour*24))))
 }
 
 func TestAgeInDaysWithYesterdayPlusOneHour(t *testing.T) {
