@@ -1,3 +1,0 @@
-[submodule "go.mk"]
-	path = go.mk
-	url = git@github.com:exoscale/go.mk.git
