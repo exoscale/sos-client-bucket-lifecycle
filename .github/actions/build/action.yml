@@ -5,7 +5,9 @@ runs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
-        submodules: true
+
+    - run: make go.mk
+      shell: bash
 
     - uses: ./go.mk/.github/actions/setup
 
