@@ -1,0 +1,14 @@
+{
+    "Rules": [
+        {
+            "Filter": {
+                "Prefix": "documents/"
+            },
+            "Status": "Enabled",
+            "Expiration": {
+                "ExpiredObjectDeleteMarker": true
+            },
+            "ID": "ExampleRule"
+        }
+    ]
+}

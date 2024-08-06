@@ -346,6 +346,18 @@ func TestExpiredObjectDeleteMarker1Days(t *testing.T) {
 	})
 }
 
+func TestWithoutExpirationDays(t *testing.T) {
+	WithClient(func(client *s3.Client) {
+		PutObject(client, "key1")
+		versions := ListObjectVersions(client)
+		require.Equal(t, 1, len(versions))
+		cfg := LoadConfig("../testdata/rule_without_expiration.json")
+		_ = cmd.Execute(client, bucket, cfg)
+		versions = ListObjectVersions(client)
+		require.Equal(t, 1, len(versions))
+	})
+}
+
 /*
 Minio does not support AbortIncompleteMultipartUpload : https://github.com/minio/minio/issues/13246
 func TestAbortIncompleteMultipartUpload0Days(t *testing.T) {
