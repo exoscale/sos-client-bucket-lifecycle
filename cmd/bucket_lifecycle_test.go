@@ -182,9 +182,11 @@ func TestNewerNoncurrentVersionsOneKeyOneVersion(t *testing.T) {
 		cfg := LoadConfig("../testdata/rule_with_expiration_newer_noncurrent_versions_0.json")
 		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
-		require.Equal(t, 1, len(versions))
+		require.Equal(t, 2, len(versions))
 		require.True(t, versions[0].IsLatest)
 		require.True(t, versions[0].DeleteMarker)
+		require.False(t, versions[1].IsLatest)
+		require.False(t, versions[1].DeleteMarker)
 	})
 }
 
@@ -196,9 +198,11 @@ func TestNewerNoncurrentVersionsOneKeyMultipleVersions(t *testing.T) {
 		cfg := LoadConfig("../testdata/rule_with_expiration_newer_noncurrent_versions_0.json")
 		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
-		require.Equal(t, 1, len(versions))
+		require.Equal(t, 2, len(versions))
 		require.True(t, versions[0].IsLatest)
 		require.True(t, versions[0].DeleteMarker)
+		require.False(t, versions[1].IsLatest)
+		require.False(t, versions[1].DeleteMarker)
 	})
 }
 
@@ -213,9 +217,11 @@ func TestNewerNoncurrentVersionsMultipleKeysMultipleVersions(t *testing.T) {
 		cfg := LoadConfig("../testdata/rule_with_expiration_newer_noncurrent_versions_0.json")
 		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
-		require.Equal(t, 2, len(versions))
+		require.Equal(t, 4, len(versions))
 		require.True(t, versions[0].IsLatest)
 		require.True(t, versions[0].DeleteMarker)
+		require.False(t, versions[1].IsLatest)
+		require.False(t, versions[1].DeleteMarker)
 	})
 }
 
@@ -257,9 +263,11 @@ func TestNonCurrentDays0DaysOneKeyOneVersion(t *testing.T) {
 		cfg := LoadConfig("../testdata/rule_with_expiration_non_current_days_0_days.json")
 		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
-		require.Equal(t, 1, len(versions))
+		require.Equal(t, 2, len(versions))
 		require.True(t, versions[0].IsLatest)
 		require.True(t, versions[0].DeleteMarker)
+		require.False(t, versions[1].IsLatest)
+		require.False(t, versions[1].DeleteMarker)
 	})
 }
 
@@ -271,9 +279,11 @@ func TestNonCurrentDays0DaysOneKeyMultipleVersions(t *testing.T) {
 		cfg := LoadConfig("../testdata/rule_with_expiration_non_current_days_0_days.json")
 		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
-		require.Equal(t, 1, len(versions))
+		require.Equal(t, 2, len(versions))
 		require.True(t, versions[0].IsLatest)
 		require.True(t, versions[0].DeleteMarker)
+		require.False(t, versions[1].IsLatest)
+		require.False(t, versions[1].DeleteMarker)
 	})
 }
 
@@ -288,9 +298,11 @@ func TestNonCurrentDays0DaysMultipleKeysMultipleVersions(t *testing.T) {
 		cfg := LoadConfig("../testdata/rule_with_expiration_non_current_days_0_days.json")
 		_ = cmd.Execute(client, bucket, cfg)
 		versions := ListObjectVersions(client)
-		require.Equal(t, 2, len(versions))
+		require.Equal(t, 4, len(versions))
 		require.True(t, versions[0].IsLatest)
 		require.True(t, versions[0].DeleteMarker)
+		require.False(t, versions[1].IsLatest)
+		require.False(t, versions[1].DeleteMarker)
 	})
 }
 
