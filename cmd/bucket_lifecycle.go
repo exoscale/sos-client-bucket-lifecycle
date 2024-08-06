@@ -180,11 +180,16 @@ func applyRule(client *s3.Client, bucket *string, rule config.Rule) error {
 
 			age := AgeInDays(time.Now(), version.LastModified)
 			// Expiration is only applied on the latest version of the key.
-			// If applied, creates a additional non-current version
+			// If applied, creates an additional non-current version
 			if applyExpiration(client, bucket, rule, version, age) {
 				nbVersions++
 			}
-			applyNoncurrentVersionExpiration(client, bucket, rule, version, age, nbVersions)
+
+			// XXX: This is not taking into account the versions created by the Expiration, which
+			// is fine.
+			if !version.IsLatest {
+				applyNoncurrentVersionExpiration(client, bucket, rule, version, age, nbVersions)
+			}
 		}
 	}
 	expireObjectDeleteMarker(nil)
