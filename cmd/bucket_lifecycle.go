@@ -89,7 +89,7 @@ func applyAbortIncompleteMultipartUpload(client *s3.Client, bucket *string, rule
 }
 
 func applyExpiration(client *s3.Client, bucket *string, rule config.Rule, version Version, age int) bool {
-	if rule.Expiration != nil && version.IsLatest && !version.DeleteMarker {
+	if rule.Expiration != nil && rule.Expiration.Days != nil && version.IsLatest && !version.DeleteMarker {
 		if age >= *rule.Expiration.Days {
 			_, err := client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: bucket, Key: &version.Key})
 			if err != nil {
