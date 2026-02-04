@@ -68,6 +68,7 @@ func AgeInDays(now, lastModified time.Time) int {
 func applyAbortIncompleteMultipartUpload(client *s3.Client, bucket *string, rule config.Rule) error {
 	if rule.AbortIncompleteMultipartUpload != nil {
 		paginator := s3.NewListMultipartUploadsPaginator(client, &s3.ListMultipartUploadsInput{Bucket: bucket})
+		log.Printf("[abort multipart upload] listing multipart uploads")
 		for paginator.HasMorePages() {
 			out, err := paginator.NextPage(context.TODO())
 			if err != nil {
@@ -80,6 +81,8 @@ func applyAbortIncompleteMultipartUpload(client *s3.Client, bucket *string, rule
 					_, err := client.AbortMultipartUpload(context.TODO(), &s3.AbortMultipartUploadInput{Bucket: bucket, Key: upload.Key, UploadId: upload.UploadId})
 					if err != nil {
 						log.Printf("[abort multipart upload] cannot abort upload %s", *upload.UploadId)
+					} else {
+						log.Printf("[abort multipart upload] upload %s removed", *upload.UploadId)
 					}
 				}
 			}
