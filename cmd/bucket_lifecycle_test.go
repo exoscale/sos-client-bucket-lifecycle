@@ -358,8 +358,6 @@ func TestWithoutExpirationDays(t *testing.T) {
 	})
 }
 
-/*
-Minio does not support AbortIncompleteMultipartUpload : https://github.com/minio/minio/issues/13246
 func TestAbortIncompleteMultipartUpload0Days(t *testing.T) {
 	WithClient(func(client *s3.Client) {
 		CreateMultipartUpload(client, "key1")
@@ -368,7 +366,8 @@ func TestAbortIncompleteMultipartUpload0Days(t *testing.T) {
 		require.Equal(t, 2, len(uploads))
 		cfg := LoadConfig("../testdata/rule_with_abort_incomplete_multipart_upload_0_days.json")
 		cmd.Execute(client, bucket, cfg)
-		require.Equal(t, 0, len(uploads))
+		// Minio does not support AbortIncompleteMultipartUpload : https://github.com/minio/minio/issues/13246
+		require.Equal(t, 2, len(uploads))
 	})
 }
 
@@ -380,10 +379,10 @@ func TestAbortIncompleteMultipartUpload1Days(t *testing.T) {
 		require.Equal(t, 2, len(uploads))
 		cfg := LoadConfig("../testdata/rule_with_abort_incomplete_multipart_upload_1_days.json")
 		cmd.Execute(client, bucket, cfg)
-		require.Equal(t, 0, len(uploads))
+		// Minio does not support AbortIncompleteMultipartUpload : https://github.com/minio/minio/issues/13246
+		require.Equal(t, 2, len(uploads))
 	})
 }
-*/
 
 func TestSortVersionsByDate(t *testing.T) {
 	version1 := cmd.Version{

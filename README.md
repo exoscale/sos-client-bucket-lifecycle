@@ -52,7 +52,7 @@ Execute the OCI container with the configuration file as a volume :
 ```sh
 docker run \
   -v /bucket-lifecycle-configuration.json:/bucket-lifecycle-configuration.json \
-  exoscale/sos-client-bucket-lifecycle  \
+  docker.io/exoscale/sos-client-bucket-lifecycle:latest  \
   --config /bucket-lifecycle-configuration.json \
   --bucket mybucket \
   --access-key REDACTED \
@@ -66,7 +66,7 @@ docker run \
   -e AWS_ACCESS_KEY_ID=REDACTED \
   -e AWS_SECRET_ACCESS_KEY=REDACTED \
   -v /bucket-lifecycle-configuration.json:/bucket-lifecycle-configuration.json \ 
-  exoscale/sos-client-bucket-lifecycle  \
+  docker.io/exoscale/sos-client-bucket-lifecycle:latest \
   --config /bucket-lifecycle-configuration.json \
   --bucket mybucket \
 ```
