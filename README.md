@@ -1,5 +1,15 @@
 # Exoscale - SOS Client Bucket Lifecycle
 
+> [!WARNING]
+> **This project is deprecated and will be archived.**
+>
+> Exoscale Object Storage (SOS) now supports bucket lifecycle rules natively
+> ([announcement](https://changelog.exoscale.com/sos-bucket-lifecycle-ga/)).
+> Rules are evaluated server-side every night, so you no longer need to run this
+> tool on a schedule. No further fixes or releases are planned.
+>
+> See the [official documentation](https://community.exoscale.com/product/storage/object-storage/how-to/bucketlifecycle/).
+
 ## Description
 
 In the absence of Bucket Lifecycle support on SOS, this tool allows the application of a set of rules defined in a JSON file.
